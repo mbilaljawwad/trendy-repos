@@ -15,6 +15,25 @@ const (
 	sinceCreated   = "created:>2025-01-01"
 )
 
+// name, html_url, description, language, stargazers_count, owner.login, topics
+
+type RepoSearchResponse struct {
+	TotalCount int64  `json:"total_count"`
+	Incomplete bool   `json:"incomplete_results"`
+	Items      []Repo `json:"items"`
+}
+
+type Repo struct {
+	GitHubId        int64    `json:"id"`
+	Name            string   `json:"name"`
+	HtmlUrl         string   `json:"html_url"`
+	Description     string   `json:"description"`
+	Language        string   `json:"language"`
+	StargazersCount int64    `json:"stargazers_count"`
+	OwnerUsername   string   `json:"owner.login"`
+	Topics          []string `json:"topics"`
+}
+
 type GithubClient struct {
 	URL    string
 	APIKey string

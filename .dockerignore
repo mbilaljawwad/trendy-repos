@@ -1,0 +1,62 @@
+# Git
+.git
+.gitignore
+README.md
+
+# Documentation
+*.md
+docs/
+
+# Docker files
+Dockerfile*
+docker-compose*
+
+# Temporary files
+tmp/
+temp/
+.tmp
+
+# Dependencies
+vendor/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+*_test.go
+test/
+tests/
+coverage.out
+
+# Environment files (be careful with sensitive data)
+.env.local
+.env.development
+.env.test
+
+# Node modules (if any)
+node_modules/
+
+# Build artifacts
+build/
+dist/
+bin/
+
+# Air temporary files
+tmp/
+build-errors.log
+
+# Other
+*.orig
+*.rej 
