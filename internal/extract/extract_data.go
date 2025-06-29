@@ -1,12 +1,34 @@
 package extract
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
+
+// sanitizeResponseBody cleans invalid UTF-8 sequences from HTTP response
+func sanitizeResponseBody(body []byte) []byte {
+	// Remove common problematic byte sequences before JSON parsing
+	problemPatterns := [][]byte{
+		{0xe7, 0xbd, 0x2e}, // The specific sequence causing the error
+		{0xff, 0xfe},       // BOM markers
+		{0xfe, 0xff},       // BOM markers
+		{0xef, 0xbb, 0xbf}, // UTF-8 BOM
+		{0x00},             // Null bytes
+	}
+
+	cleanBody := body
+	for _, pattern := range problemPatterns {
+		cleanBody = bytes.ReplaceAll(cleanBody, pattern, []byte{})
+	}
+
+	// Convert to valid UTF-8
+	return []byte(strings.ToValidUTF8(string(cleanBody), ""))
+}
 
 func (c *GithubClient) FetchTrendingReposFor2025(
 	sort Sort,
@@ -33,8 +55,11 @@ func (c *GithubClient) FetchTrendingReposFor2025(
 		return nil
 	}
 
+	// Sanitize the response body before JSON unmarshaling
+	cleanBody := sanitizeResponseBody(body)
+
 	var repoSearchResp RepoSearchResponse
-	err = json.Unmarshal(body, &repoSearchResp)
+	err = json.Unmarshal(cleanBody, &repoSearchResp)
 	if err != nil {
 		log.Fatalf("Error parsing response body: %v", err)
 		return nil
@@ -42,16 +67,17 @@ func (c *GithubClient) FetchTrendingReposFor2025(
 
 	var repos []Repo
 	for _, repo := range repoSearchResp.Items {
-		repos = append(repos, Repo{
+		r := Repo{
 			GitHubId:        repo.GitHubId,
 			Name:            repo.Name,
 			HtmlUrl:         repo.HtmlUrl,
 			Description:     repo.Description,
 			Language:        repo.Language,
 			StargazersCount: repo.StargazersCount,
-			OwnerUsername:   repo.OwnerUsername,
+			OwnerUsername:   repo.Owner.Login,
 			Topics:          repo.Topics,
-		})
+		}
+		repos = append(repos, r)
 	}
 	return repos
 }

@@ -9,13 +9,14 @@ import (
 )
 
 const (
-	baseURL        = "https://api.github.com"
 	searchRepoPath = "search/repositories"
 	perPage        = 5
 	sinceCreated   = "created:>2025-01-01"
 )
 
-// name, html_url, description, language, stargazers_count, owner.login, topics
+type Owner struct {
+	Login string `json:"login"`
+}
 
 type RepoSearchResponse struct {
 	TotalCount int64  `json:"total_count"`
@@ -24,13 +25,14 @@ type RepoSearchResponse struct {
 }
 
 type Repo struct {
-	GitHubId        int64    `json:"id"`
+	GitHubId        int64    `json:"id,omitempty"`
 	Name            string   `json:"name"`
 	HtmlUrl         string   `json:"html_url"`
 	Description     string   `json:"description"`
 	Language        string   `json:"language"`
 	StargazersCount int64    `json:"stargazers_count"`
-	OwnerUsername   string   `json:"owner.login"`
+	Owner           Owner    `json:"owner"`
+	OwnerUsername   string   `json:"-"` // This will be populated from Owner.Login
 	Topics          []string `json:"topics"`
 }
 
@@ -57,6 +59,7 @@ func NewGithubClient() *GithubClient {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
+	baseURL := viper.GetString("GITHUB_API_URL")
 	return &GithubClient{
 		URL:    fmt.Sprintf("%s/%s", baseURL, searchRepoPath),
 		APIKey: viper.GetString("GITHUB_PAT"),

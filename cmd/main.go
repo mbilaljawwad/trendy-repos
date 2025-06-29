@@ -1,17 +1,16 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"log"
-	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/mbilaljawwad/trendy-repos/internal/config"
-	"github.com/mbilaljawwad/trendy-repos/internal/extract"
-	"github.com/mbilaljawwad/trendy-repos/internal/http_middleware"
-	"github.com/mbilaljawwad/trendy-repos/internal/transform"
+	"github.com/mbilaljawwad/trendy-repos/internal/server"
 )
 
 const (
@@ -22,29 +21,31 @@ func main() {
 	fmt.Println("Starting the application...")
 	config.InitConfig()
 
-	router := chi.NewRouter()
-	router.Use(middleware.Logger)
-	router.Use(http_middleware.CorsMiddleware)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	appServer := server.NewAppServer(ctx)
 
-	router.Get("/extract", func(w http.ResponseWriter, req *http.Request) {
-		client := extract.NewGithubClient()
-		repos := client.FetchTrendingReposFor2025(extract.SortStars, extract.OrderDesc)
-		normalizedRepos := transform.NormalizeData(repos)
+	go func() {
+		appServer.Start()
+	}()
 
-		fmt.Println("normalizedRepos: ", normalizedRepos)
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message": "Extracted and normalized data successfully",
-		})
-	})
-
-	srv := http.Server{
-		Addr:    PORT,
-		Handler: router,
+	select {
+	case <-sigChan:
+		fmt.Println("Received signal to terminate the server")
+	case <-ctx.Done():
+		fmt.Println("Context cancel, initiating graceful shutdown")
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf("Error starting server: %v", err)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer shutdownCancel()
+
+	if err := appServer.Server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Error shutting down server: %v", err)
 	}
+
+	fmt.Println("Server shutdown complete")
+
 }

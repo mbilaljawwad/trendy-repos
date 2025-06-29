@@ -1,5 +1,9 @@
 -- Database initialization script for trendy-repos application
 
+-- Set database encoding and connection parameters
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+
 -- Create extension for UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
@@ -8,13 +12,11 @@ CREATE TABLE IF NOT EXISTS repositories (
     id SERIAL PRIMARY KEY,
     github_id BIGINT UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
-    full_name VARCHAR(255) NOT NULL,
     description TEXT,
     url VARCHAR(500) NOT NULL,
     stars_count INTEGER DEFAULT 0,
-    forks_count INTEGER DEFAULT 0,
     language VARCHAR(100),
-    topics TEXT[],
+    topics TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -41,7 +43,7 @@ CREATE TRIGGER update_repositories_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert some sample data (optional)
-INSERT INTO repositories (github_id, name, full_name, description, url, stars_count, forks_count, language)
+INSERT INTO repositories (github_id, name, description, url, stars_count, language, topics)
 VALUES 
-    (1, 'sample-repo', 'user/sample-repo', 'A sample repository', 'https://github.com/user/sample-repo', 100, 20, 'Go')
+    (1, 'sample-repo', 'user/sample-repo', 'A sample repository', 'https://github.com/user/sample-repo', 100, 20, 'go', 'sample-topic')
 ON CONFLICT (github_id) DO NOTHING; 
