@@ -79,3 +79,80 @@ git-status: ## Show git status
 setup: ## Initial setup - copy env file and start containers
 	cp app.env.example app.env
 	$(MAKE) dev 
+
+# Go parameters
+GOCMD=go
+GOBUILD=$(GOCMD) build
+GOCLEAN=$(GOCMD) clean
+GOTEST=$(GOCMD) test
+GOGET=$(GOCMD) get
+GOMOD=$(GOCMD) mod
+BINARY_NAME=trendy-repos
+MIGRATE_BINARY=migrate
+
+# Build the main application
+build:
+	$(GOBUILD) -o $(BINARY_NAME) -v ./cmd/main.go
+
+# Build the migration tool
+build-migrate:
+	$(GOBUILD) -o $(MIGRATE_BINARY) -v ./cmd/migrate/main.go
+
+# Clean build artifacts
+clean:
+	$(GOCLEAN)
+	rm -f $(BINARY_NAME)
+	rm -f $(MIGRATE_BINARY)
+
+# Run tests
+test:
+	$(GOTEST) -v ./...
+
+# Download dependencies
+deps:
+	$(GOMOD) download
+	$(GOMOD) tidy
+
+# Run the application
+run:
+	$(GOBUILD) -o $(BINARY_NAME) -v ./cmd/main.go
+	./$(BINARY_NAME)
+
+# Docker commands
+docker-build:
+	docker-compose build
+
+docker-up:
+	docker-compose up -d
+
+docker-down:
+	docker-compose down
+
+docker-logs:
+	docker-compose logs -f
+
+# Migration commands
+migrate-up:
+	$(GOBUILD) -o $(MIGRATE_BINARY) -v ./cmd/migrate/main.go
+	./$(MIGRATE_BINARY) -action=up
+
+migrate-down:
+	$(GOBUILD) -o $(MIGRATE_BINARY) -v ./cmd/migrate/main.go
+	./$(MIGRATE_BINARY) -action=down
+
+migrate-status:
+	$(GOBUILD) -o $(MIGRATE_BINARY) -v ./cmd/migrate/main.go
+	./$(MIGRATE_BINARY) -action=status
+
+migrate-create:
+	@if [ -z "$(NAME)" ]; then \
+		echo "Please provide a migration name: make migrate-create NAME=your_migration_name"; \
+		exit 1; \
+	fi
+	$(GOBUILD) -o $(MIGRATE_BINARY) -v ./cmd/migrate/main.go
+	./$(MIGRATE_BINARY) -action=create -name=$(NAME)
+
+# Development helpers
+dev: docker-up run
+
+.PHONY: build build-migrate clean test deps run docker-build docker-up docker-down docker-logs migrate-up migrate-down migrate-status migrate-create dev 
